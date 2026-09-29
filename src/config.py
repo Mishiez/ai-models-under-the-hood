@@ -24,3 +24,23 @@ COLUMNS = [
     "benchmark_name", "benchmark_category", "benchmark_verified",
     "benchmark_score", TARGET, "benchmark_rank", "benchmark_percentile",
 ]
+
+GROUP = "model_name"  # model_id is unique per row, so it cannot define a group
+TEST_SIZE = 0.2
+SPLIT_JSON = ROOT / "splits" / "split.json"
+
+# Baseline inputs: original columns only. Excluded on purpose:
+#   benchmark_score                         copy of the target
+#   benchmark_rank, benchmark_percentile    describe the outcome of the score
+#   model_name, model_id, record_id         identifiers / group key
+#   release_date, benchmark_date            raw dates; reserved for the feature branch
+NUMERIC = [
+    "parameter_count_billions", "context_window_tokens",
+    "input_price_per_1m_tokens", "output_price_per_1m_tokens",
+    "model_age_days", "context_to_parameter_ratio", "confidence_score",
+    "open_weights", "open_source", "benchmark_verified",
+]
+CATEGORICAL = [
+    "benchmark_name", "benchmark_category", "model_type", "model_family",
+    "company_name", "headquarters_country", "data_source_type",
+]
