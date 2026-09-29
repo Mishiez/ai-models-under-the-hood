@@ -4,6 +4,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 RAW_CSV = DATA_DIR / "AI_Wars_Dataset.csv"
 SAMPLE_CSV = DATA_DIR / "AI_Wars_Sample_10000.csv"
+SOURCES_CSV = DATA_DIR / "AI_Wars_Sources.csv"
 SUBSET_PKL = DATA_DIR / "benchmark_subset.pkl"
 
 SEED = 42

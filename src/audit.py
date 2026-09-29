@@ -1,7 +1,7 @@
 """Data-quality audit of the benchmark_result subset. Run: python -m src.audit"""
 import pandas as pd
 
-from src.config import ROW_TYPE, SAMPLE_CSV, TARGET
+from src.config import ROW_TYPE, SAMPLE_CSV, SOURCES_CSV, TARGET
 from src.load import load_subset
 
 
@@ -187,6 +187,19 @@ def leakage_formulas():
     return pd.DataFrame({k: v.describe()[["mean", "std", "min", "max"]] for k, v in ratios.items()}).round(3).T
 
 
+def source_file_checks(df):
+    """Sanity of AI_Wars_Sources.csv, the file that is supposed to back the 'verified' labels."""
+    src = pd.read_csv(SOURCES_CSV, parse_dates=["publication_date", "access_date"])
+    return {
+        "sources": len(src),
+        "example_com_url_share": float(src["source_url"].str.startswith("https://example.com").mean()),
+        "accessed_before_published_share": float((src["access_date"] < src["publication_date"]).mean()),
+        "accessed_after_generation_share": float((src["access_date"] > GENERATED_ON).mean()),
+        "credibility_levels": src["credibility_level"].value_counts().to_dict(),
+        "benchmark_rows_marked_verified": int(df["benchmark_verified"].sum()),
+    }
+
+
 def main():
     df = load_subset()
     print(f"rows: {len(df):,}")
@@ -228,6 +241,9 @@ def main():
     print("\n== leakage scan ==")
     print(leakage_scan().head(12).to_string())
     print(leakage_formulas().to_string())
+
+    print("\n== sources file sanity ==")
+    print(source_file_checks(df))
 
 
 if __name__ == "__main__":
