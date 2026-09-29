@@ -140,6 +140,23 @@ def group_balance(df):
     return out
 
 
+GENERATED_ON = pd.Timestamp("2026-09-14")  # from AI_Wars_Validation_Report.txt
+
+
+def date_checks(df):
+    """Do the date columns agree with each other and with the dataset's generation date?"""
+    bench = pd.to_datetime(df["benchmark_date"])
+    release = pd.to_datetime(df["release_date"])
+    start = pd.Timestamp(bench.min().year, 1, 1)
+    return {
+        "benchmark_date_equals_release_date_share": float((bench == release).mean()),
+        "benchmark_date_after_generation_share": float((bench > GENERATED_ON).mean()),
+        "latest_benchmark_date": str(bench.max().date()),
+        "model_age_days_vs_dates_corr": float(df["model_age_days"].corr((bench - start).dt.days)),
+        "model_age_days_range": (int(df["model_age_days"].min()), int(df["model_age_days"].max())),
+    }
+
+
 def main():
     df = load_subset()
     print(f"rows: {len(df):,}")
@@ -174,6 +191,9 @@ def main():
     for name, table in group_balance(df).items():
         print(f"-- {name}")
         print(table.to_string())
+
+    print("\n== date consistency ==")
+    print(date_checks(df))
 
 
 if __name__ == "__main__":
