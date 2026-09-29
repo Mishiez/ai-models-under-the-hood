@@ -21,8 +21,13 @@ def log_context_window(df):
     return np.log(df["context_window_tokens"])
 
 
+def price_ratio(df):
+    """Output / input price; a zero input price gives NaN, which the pipeline imputes."""
+    return df["output_price_per_1m_tokens"] / df["input_price_per_1m_tokens"].replace(0, np.nan)
+
+
 FEATURES = {"benchmark_days": benchmark_days, "log_parameters": log_parameters,
-            "log_context_window": log_context_window}
+            "log_context_window": log_context_window, "price_ratio": price_ratio}
 
 
 def add_features(df, names=None):
