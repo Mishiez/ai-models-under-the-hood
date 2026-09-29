@@ -1,7 +1,7 @@
 """Data-quality audit of the benchmark_result subset. Run: python -m src.audit"""
 import pandas as pd
 
-from src.config import TARGET
+from src.config import ROW_TYPE, SAMPLE_CSV, TARGET
 from src.load import load_subset
 
 
@@ -157,6 +157,36 @@ def date_checks(df):
     }
 
 
+LEAK_KEYWORDS = ("score", "rank", "percentile", "performance_to", "leaderboard", "efficiency", "per_dollar")
+
+
+def leakage_scan():
+    """Name-scan all 483 columns for target-like words, then test the hits on benchmark rows.
+
+    Uses the 10k sample (all columns, ~1.4k labelled benchmark rows) instead of the full CSV.
+    """
+    sample = pd.read_csv(SAMPLE_CSV, low_memory=False)
+    rows = sample[(sample["row_type"] == ROW_TYPE) & sample[TARGET].notna()]
+    hits = [c for c in sample.columns if c != TARGET and any(k in c for k in LEAK_KEYWORDS)]
+    table = pd.DataFrame({
+        "populated_share": rows[hits].notna().mean(),
+        "abs_corr_with_target": rows[hits].apply(pd.to_numeric, errors="coerce").corrwith(rows[TARGET]).abs(),
+    }).round(3)
+    return table[table["populated_share"] > 0].sort_values("abs_corr_with_target", ascending=False)
+
+
+def leakage_formulas():
+    """Spot-check how the strongest leaks relate to the target (ratio to target, per row)."""
+    sample = pd.read_csv(SAMPLE_CSV, low_memory=False)
+    rows = sample[(sample["row_type"] == ROW_TYPE) & sample[TARGET].notna()]
+    ratios = {
+        "model_value_score / target": rows["model_value_score"] / rows[TARGET],
+        "benchmark_score_per_dollar * input_price / target":
+            rows["benchmark_score_per_dollar"] * rows["input_price_per_1m_tokens"] / rows[TARGET],
+    }
+    return pd.DataFrame({k: v.describe()[["mean", "std", "min", "max"]] for k, v in ratios.items()}).round(3).T
+
+
 def main():
     df = load_subset()
     print(f"rows: {len(df):,}")
@@ -194,6 +224,10 @@ def main():
 
     print("\n== date consistency ==")
     print(date_checks(df))
+
+    print("\n== leakage scan ==")
+    print(leakage_scan().head(12).to_string())
+    print(leakage_formulas().to_string())
 
 
 if __name__ == "__main__":
