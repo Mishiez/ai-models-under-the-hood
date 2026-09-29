@@ -44,6 +44,60 @@ def duplicates(df):
     }
 
 
+def group_structure(df):
+    """How much target variance does each grouping explain, versus what chance alone gives?
+
+    With k groups and n rows, groups of pure noise still "explain" about (k-1)/(n-1).
+    """
+    labelled = df.dropna(subset=[TARGET])
+    n, total_var = len(labelled), labelled[TARGET].var()
+    rows = []
+    for cols in (["benchmark_name"], ["company_name"], ["model_family"], ["model_name"],
+                 ["model_name", "benchmark_name"]):
+        grouped = labelled.groupby(cols)[TARGET]
+        rows.append({
+            "grouping": " + ".join(cols),
+            "groups": grouped.ngroups,
+            "variance_explained": grouped.transform("mean").var() / total_var,
+            "expected_by_chance": (grouped.ngroups - 1) / (n - 1),
+        })
+    return pd.DataFrame(rows).round(4)
+
+
+def model_attribute_consistency(df):
+    """Max distinct values of an attribute within one model_name (a real model would have 1)."""
+    cols = ["company_name", "model_type", "open_weights", "parameter_count_billions",
+            "context_window_tokens", "input_price_per_1m_tokens", "release_date"]
+    return df.groupby("model_name")[cols].nunique().max().rename("max_distinct_per_model_name").to_frame()
+
+
+def group_structure(df):
+    """How much target variance does each grouping explain, versus what chance alone gives?
+
+    With k groups and n rows, groups of pure noise still "explain" about (k-1)/(n-1).
+    """
+    labelled = df.dropna(subset=[TARGET])
+    n, total_var = len(labelled), labelled[TARGET].var()
+    rows = []
+    for cols in (["benchmark_name"], ["company_name"], ["model_family"], ["model_name"],
+                 ["model_name", "benchmark_name"]):
+        grouped = labelled.groupby(cols)[TARGET]
+        rows.append({
+            "grouping": " + ".join(cols),
+            "groups": grouped.ngroups,
+            "variance_explained": grouped.transform("mean").var() / total_var,
+            "expected_by_chance": (grouped.ngroups - 1) / (n - 1),
+        })
+    return pd.DataFrame(rows).round(4)
+
+
+def model_attribute_consistency(df):
+    """Max distinct values of an attribute within one model_name (a real model would have 1)."""
+    cols = ["company_name", "model_type", "open_weights", "parameter_count_billions",
+            "context_window_tokens", "input_price_per_1m_tokens", "release_date"]
+    return df.groupby("model_name")[cols].nunique().max().rename("max_distinct_per_model_name").to_frame()
+
+
 def main():
     df = load_subset()
     print(f"rows: {len(df):,}")
@@ -55,6 +109,12 @@ def main():
 
     print("\n== duplicates and identifiers ==")
     print(duplicates(df))
+
+    print("\n== target variance by grouping ==")
+    print(group_structure(df))
+
+    print("\n== attributes within one model_name ==")
+    print(model_attribute_consistency(df))
 
 
 if __name__ == "__main__":
