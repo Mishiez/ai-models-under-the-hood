@@ -124,6 +124,22 @@ def target_distribution(df):
             "by_benchmark": labelled.groupby("benchmark_name")[TARGET].mean().round(1).describe().round(2)}
 
 
+def group_balance(df):
+    """Row counts and mean target for the groups where sampling skew or bias could hide."""
+    labelled = df.dropna(subset=[TARGET])
+    out = {}
+    for col in ("open_weights", "model_type", "headquarters_country", "benchmark_category"):
+        counts = df[col].value_counts()
+        out[col] = pd.DataFrame({
+            "rows": counts,
+            "share": (counts / len(df)).round(3),
+            "mean_target": labelled.groupby(col)[TARGET].mean().round(2),
+        }).head(10)
+    per_company = df["company_name"].value_counts()
+    out["rows_per_company"] = per_company.describe().round(1)
+    return out
+
+
 def main():
     df = load_subset()
     print(f"rows: {len(df):,}")
@@ -153,6 +169,11 @@ def main():
     print(dist["by_benchmark_year"].to_string())
     print("mean target across the 23 benchmarks:")
     print(dist["by_benchmark"].to_string())
+
+    print("\n== group balance ==")
+    for name, table in group_balance(df).items():
+        print(f"-- {name}")
+        print(table.to_string())
 
 
 if __name__ == "__main__":
