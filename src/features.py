@@ -1,0 +1,37 @@
+"""Row-wise engineered features (hypotheses in reports/feature_hypotheses.md).
+
+Every function looks at one row at a time, so nothing is learned from other rows and
+computing them before the split cannot leak. Anything that needs fitting stays in the Pipeline.
+"""
+import numpy as np
+import pandas as pd
+
+TIME_ORIGIN = pd.Timestamp("2018-01-01")  # first date in the dataset
+
+
+def benchmark_days(df):
+    return (pd.to_datetime(df["benchmark_date"]) - TIME_ORIGIN).dt.days
+
+
+def log_parameters(df):
+    return np.log1p(df["parameter_count_billions"])
+
+
+def log_context_window(df):
+    return np.log(df["context_window_tokens"])
+
+
+def price_ratio(df):
+    """Output / input price; a zero input price gives NaN, which the pipeline imputes."""
+    return df["output_price_per_1m_tokens"] / df["input_price_per_1m_tokens"].replace(0, np.nan)
+
+
+FEATURES = {"benchmark_days": benchmark_days, "log_parameters": log_parameters,
+            "log_context_window": log_context_window, "price_ratio": price_ratio}
+
+
+def add_features(df, names=None):
+    out = df.copy()
+    for name in names or FEATURES:
+        out[name] = FEATURES[name](df)
+    return out
