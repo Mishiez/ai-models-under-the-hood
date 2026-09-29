@@ -2,8 +2,10 @@
 import pandas as pd
 from scipy.stats import spearmanr
 
-from src.baseline import fold_metrics, heldout_metrics
-from src.config import CATEGORICAL, NUMERIC, TARGET
+from sklearn.model_selection import GroupKFold, cross_validate
+
+from src.baseline import N_FOLDS, fold_metrics, heldout_metrics
+from src.config import CATEGORICAL, GROUP, NUMERIC, TARGET
 from src.features import FEATURES, add_features
 from src.pipeline import build_pipeline
 from src.split import load_split
@@ -26,6 +28,17 @@ def run_variant(train, test, extra):
     return {**heldout_metrics(model, train, test, columns), **fold_metrics(model, train, columns)}
 
 
+def paired_fold_gains(train, extra):
+    """Exploratory (not pre-registered): per-fold RMSE gain of baseline minus variant, same folds."""
+    def fold_rmse(numeric):
+        columns = numeric + CATEGORICAL
+        scores = cross_validate(build_pipeline(numeric=numeric), train[columns], train[TARGET],
+                                groups=train[GROUP], cv=GroupKFold(n_splits=N_FOLDS),
+                                scoring="neg_root_mean_squared_error")
+        return -scores["test_score"]
+    return fold_rmse(NUMERIC) - fold_rmse(NUMERIC + list(extra))
+
+
 def main():
     train, test = load_split()
     train, test = add_features(train), add_features(test)
@@ -42,6 +55,8 @@ def main():
     print(table.round(3).to_string())
     print()
     print(spearman_table(train).round(4).to_string())
+    gains = paired_fold_gains(train, ["benchmark_days"])
+    print("\nbenchmark_days paired per-fold RMSE gain (exploratory):", gains.round(3).tolist())
     print(f"\nbaseline fold std: {base['rmse_std']:.3f}")
     return table
 
