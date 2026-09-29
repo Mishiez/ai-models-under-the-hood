@@ -67,3 +67,21 @@ The date columns are identical on 100% of rows, so "benchmark date minus release
 2. **Features banned:** `benchmark_score`, every column in finding 3, and anything containing rank/percentile from the derived family.
 3. **Feature ideas:** the plan's "model age" feature (benchmark date minus release date) is dead (finding 6). Date-based features (benchmark year) are the one candidate with measurable signal. Size, price and context features start with correlations below 0.05, so expect a null or tiny result and report fold statistics honestly.
 4. **Benchmark name:** keep it in the baseline for completeness, but it explains 0.06% of variance, which is chance level.
+
+## Update: does the model's error differ across groups?
+
+`python -m src.subgroup` scores every labelled row (29,986) with an out-of-fold prediction from the baseline plus `benchmark_days`, where the model never saw that row's `model_name`. For each group of at least 100 rows it reports RMSE, mean residual (bias) and z-scores for both. A group is flagged at |z| > 3, because about 90 groups are tested and |z| > 2 would flag several by chance alone. Overall RMSE is 16.09.
+
+| Grouping | Groups | RMSE range | Largest \|bias\| | Flagged |
+|---|---|---|---|---|
+| open vs closed weights | 2 | 16.08 to 16.11 | 0.004 | 0 |
+| model type | 8 | 15.68 to 16.29 | 0.018 | 0 |
+| headquarters country | 8 | 15.07 to 16.61 | 0.025 | 0 |
+| company | 50 | 15.07 to 17.21 | 0.052 | 0 |
+| benchmark | 23 | 15.38 to 16.52 | 0.039 | 0 |
+| data source type | 5 | 15.77 to 16.36 | 0.019 | 0 |
+
+- **No bias, but not evidence of fairness.** Bias is under 0.06 points in every group (on a 0 to 100 scale with a standard deviation of 16). The model is equally wrong everywhere because it is barely better than predicting the mean, so it has nothing group-specific to get wrong.
+- **RMSE spread matches chance.** The widest gap is Suno AI (17.21, z = 2.5) against Mistral AI (15.07, z = -2.2), among 50 companies of about 600 rows each. That is what noise produces at this sample size. Country RMSE ranges from 15.07 (France, 584 rows) to 16.61 (Canada, 568 rows), also within sampling error.
+- **The "estimated" rows are not worse.** The 5% of rows the dataset labels as estimated have RMSE 15.96 against 16.1 overall, so nothing says they should be down-weighted.
+- **Limit of the check:** the model was given company, country and open-weights as inputs, so near-zero bias for those groups is partly by construction. The meaningful result is that RMSE, which is not forced to zero, is also flat.
