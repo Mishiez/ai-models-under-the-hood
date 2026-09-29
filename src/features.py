@@ -17,7 +17,12 @@ def log_parameters(df):
     return np.log1p(df["parameter_count_billions"])
 
 
-FEATURES = {"benchmark_days": benchmark_days, "log_parameters": log_parameters}
+def log_context_window(df):
+    return np.log(df["context_window_tokens"])
+
+
+FEATURES = {"benchmark_days": benchmark_days, "log_parameters": log_parameters,
+            "log_context_window": log_context_window}
 
 
 def add_features(df, names=None):
