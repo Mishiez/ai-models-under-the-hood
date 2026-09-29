@@ -98,6 +98,20 @@ def model_attribute_consistency(df):
     return df.groupby("model_name")[cols].nunique().max().rename("max_distinct_per_model_name").to_frame()
 
 
+def source_mix(df):
+    """Source, verification and data-layer mix, with mean target per level and label overlap."""
+    labelled = df.dropna(subset=[TARGET])
+    out = {}
+    for col in ("data_source_type", "verification_status", "data_layer", "benchmark_verified"):
+        out[col] = pd.DataFrame({
+            "rows": df[col].value_counts(),
+            "share": df[col].value_counts(normalize=True).round(3),
+            "mean_target": labelled.groupby(col)[TARGET].mean().round(2),
+        })
+    out["verification_vs_source"] = pd.crosstab(df["data_source_type"], df["verification_status"])
+    return out
+
+
 def main():
     df = load_subset()
     print(f"rows: {len(df):,}")
@@ -115,6 +129,11 @@ def main():
 
     print("\n== attributes within one model_name ==")
     print(model_attribute_consistency(df))
+
+    print("\n== source and verification mix ==")
+    for name, table in source_mix(df).items():
+        print(f"-- {name}")
+        print(table.to_string())
 
 
 if __name__ == "__main__":
