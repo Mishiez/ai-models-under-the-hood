@@ -16,7 +16,10 @@ def target_redundancy(df):
     both = df.dropna(subset=["benchmark_score", TARGET])
     return {
         "rows_with_both": len(both),
-        "identical_share": float((both["benchmark_score"] == both[TARGET]).mean()),
+        "max_abs_difference": float((both["benchmark_score"] - both[TARGET]).abs().max()),
+        "equal_within_1e-6_share": float(
+            ((both["benchmark_score"] - both[TARGET]).abs() < 1e-6).mean()
+        ),
         "rows_missing_score_but_have_target": int(
             (df["benchmark_score"].isna() & df[TARGET].notna()).sum()
         ),
