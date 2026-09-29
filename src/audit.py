@@ -112,6 +112,18 @@ def source_mix(df):
     return out
 
 
+def target_distribution(df):
+    """Range, skew and clipping of the target, overall and by benchmark date year."""
+    labelled = df.dropna(subset=[TARGET])
+    year = pd.to_datetime(labelled["benchmark_date"]).dt.year
+    by_year = labelled.groupby(year)[TARGET].agg(["count", "mean", "std"]).round(2)
+    summary = labelled[TARGET].describe().round(2).to_dict()
+    summary["skew"] = round(float(labelled[TARGET].skew()), 3)
+    summary["share_at_100"] = float((labelled[TARGET] >= 100).mean())
+    return {"summary": summary, "by_benchmark_year": by_year,
+            "by_benchmark": labelled.groupby("benchmark_name")[TARGET].mean().round(1).describe().round(2)}
+
+
 def main():
     df = load_subset()
     print(f"rows: {len(df):,}")
@@ -134,6 +146,13 @@ def main():
     for name, table in source_mix(df).items():
         print(f"-- {name}")
         print(table.to_string())
+
+    print("\n== target distribution ==")
+    dist = target_distribution(df)
+    print(dist["summary"])
+    print(dist["by_benchmark_year"].to_string())
+    print("mean target across the 23 benchmarks:")
+    print(dist["by_benchmark"].to_string())
 
 
 if __name__ == "__main__":
