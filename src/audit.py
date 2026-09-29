@@ -23,6 +23,24 @@ def target_redundancy(df):
     }
 
 
+def duplicates(df):
+    """Repeated rows for the same model and benchmark, and whether IDs identify anything."""
+    labelled = df.dropna(subset=[TARGET])
+    return {
+        "model_id_unique_per_row": bool(df["model_id"].is_unique),
+        "distinct_model_names": int(df["model_name"].nunique()),
+        "distinct_model_families": int(df["model_family"].nunique()),
+        "labelled_rows": len(labelled),
+        "distinct_model_benchmark_pairs": len(labelled.groupby(["model_name", "benchmark_name"])),
+        "rows_repeating_a_model_benchmark_pair": int(
+            labelled.duplicated(["model_name", "benchmark_name"]).sum()
+        ),
+        "benchmark_name_aliases": sorted(
+            n for n in df["benchmark_name"].unique() if n in {"BBH", "BIG-Bench-Hard"}
+        ),
+    }
+
+
 def main():
     df = load_subset()
     print(f"rows: {len(df):,}")
@@ -31,6 +49,9 @@ def main():
 
     print("\n== score vs normalized ==")
     print(target_redundancy(df))
+
+    print("\n== duplicates and identifiers ==")
+    print(duplicates(df))
 
 
 if __name__ == "__main__":
