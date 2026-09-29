@@ -28,3 +28,7 @@ Thumbs.db
 # Python tooling
 .pytest_cache/
 .ruff_cache/
+
+# Local dataset files
+data/*
+!data/README.md
