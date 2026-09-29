@@ -13,7 +13,11 @@ def benchmark_days(df):
     return (pd.to_datetime(df["benchmark_date"]) - TIME_ORIGIN).dt.days
 
 
-FEATURES = {"benchmark_days": benchmark_days}
+def log_parameters(df):
+    return np.log1p(df["parameter_count_billions"])
+
+
+FEATURES = {"benchmark_days": benchmark_days, "log_parameters": log_parameters}
 
 
 def add_features(df, names=None):
